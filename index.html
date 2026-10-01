@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#123a63">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ekmek Fabrikası">
+<link rel="manifest" href="manifest.json">
+<title>Ekmek Fabrikası</title>
+<style>
+:root{--blue:#123a63;--bg:#f4f6f8;--card:#fff;--text:#17202a;--muted:#697586;--line:#e4e8ed}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:var(--text)}
+header{background:var(--blue);color:#fff;padding:20px 18px 16px;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:22px}header small{opacity:.8}
+nav{display:flex;gap:7px;overflow:auto;background:#fff;padding:10px;border-bottom:1px solid var(--line);position:sticky;top:72px;z-index:4}
+nav button{border:0;background:#edf1f5;padding:9px 12px;border-radius:9px;white-space:nowrap;font-weight:600;color:#344054}
+nav button.active{background:var(--blue);color:#fff}
+main{max-width:1100px;margin:auto;padding:15px}
+section{display:none}.activeSec{display:block}
+h2{font-size:20px;margin:6px 0 14px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 1px 2px #00000008}
+.label{font-size:12px;color:var(--muted)}.num{font-size:23px;font-weight:750;margin-top:6px}
+.row{display:flex;gap:10px;flex-wrap:wrap}.field{flex:1;min-width:145px}
+label{display:block;font-size:12px;color:var(--muted);margin:9px 0 5px}
+input,select{width:100%;padding:11px;border:1px solid #cfd6de;border-radius:9px;background:#fff;font-size:15px}
+button.primary{background:var(--blue);color:#fff;border:0;border-radius:9px;padding:11px 15px;margin-top:12px;font-weight:700}
+button.secondary{background:#eef1f4;color:#17202a;border:0;border-radius:9px;padding:10px 13px}
+.tablewrap{overflow:auto}.table{width:100%;border-collapse:collapse;margin-top:12px;background:#fff;min-width:650px}
+.table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+.bay{cursor:pointer}.bay:hover{border-color:#9bb2c8}
+.badge{display:inline-block;padding:4px 7px;border-radius:99px;background:#edf5ff;color:#23527c;font-size:11px}
+.total{font-size:18px;font-weight:700}
+.empty{color:var(--muted);padding:15px 0}.danger{color:#a32121}
+footer{padding:30px;text-align:center;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header><h1>🥖 Ekmek Fabrikası</h1><small>Fabrika takip sistemi • 1 kasa = 20 ekmek</small></header>
+<nav id="nav">
+<button data-s="home" class="active" onclick="go('home',this)">Ana Sayfa</button>
+<button data-s="bays" onclick="go('bays',this)">🏪 Bayiler</button>
+<button data-s="ship" onclick="go('ship',this)">📦 Sevkiyat</button>
+<button data-s="workers" onclick="go('workers',this)">👷 Elemanlar</button>
+<button data-s="expenses" onclick="go('expenses',this)">💸 Masraflar</button>
+<button data-s="reports" onclick="go('reports',this)">📊 Raporlar</button>
+</nav>
+<main>
+<section id="home" class="activeSec">
+<h2>Bugünkü Özet</h2>
+<div class="grid">
+<div class="card"><div class="label">Çıkan kasa</div><div class="num" id="dCases">0</div></div>
+<div class="card"><div class="label">Çıkan ekmek</div><div class="num" id="dBread">0</div></div>
+<div class="card"><div class="label">Eksik ekmek</div><div class="num" id="dMissing">0</div></div>
+<div class="card"><div class="label">Teslim edilen</div><div class="num" id="dDelivered">0</div></div>
+<div class="card"><div class="label">Yevmiye</div><div class="num" id="dWage">0 TL</div></div>
+<div class="card"><div class="label">Masraf</div><div class="num" id="dExpense">0 TL</div></div>
+</div>
+<div class="card" style="margin-top:12px"><b>Hızlı işlem</b><br>
+<button class="primary" onclick="go('ship',document.querySelector('[data-s=ship]'))">+ Sevkiyat Ekle</button>
+<button class="secondary" onclick="go('workers',document.querySelector('[data-s=workers]'))">+ Yevmiye</button>
+<button class="secondary" onclick="go('expenses',document.querySelector('[data-s=expenses]'))">+ Masraf</button>
+</div>
+</section>
+
+<section id="bays"><h2>🏪 Bayiler</h2><div id="bayCards" class="grid"></div></section>
+
+<section id="ship"><h2>📦 Sevkiyat Ekle</h2>
+<div class="card"><div class="row">
+<div class="field"><label>Bayi</label><select id="sBay"></select></div>
+<div class="field"><label>Kasa</label><input id="sCases" type="number" min="1" placeholder="Örn. 12" oninput="calcShip()"></div>
+<div class="field"><label>Eksik ekmek</label><input id="sMissing" type="number" min="0" value="0" oninput="calcShip()"></div>
+</div>
+<div class="grid" style="margin-top:12px">
+<div class="card"><span class="label">Toplam çıkan</span><div class="num" id="calcBread">0</div></div>
+<div class="card"><span class="label">Teslim edilen</span><div class="num" id="calcDelivered">0</div></div>
+</div>
+<button class="primary" onclick="addShip()">Sevkiyatı Kaydet</button>
+</div>
+<div id="shipList"></div></section>
+
+<section id="workers"><h2>👷 Elemanlar / Yevmiye</h2>
+<div class="card"><div class="row">
+<div class="field"><label>Eleman</label><input id="wName" placeholder="Ad soyad"></div>
+<div class="field"><label>Gün</label><input id="wDays" type="number" min="1" value="1"></div>
+<div class="field"><label>Günlük yevmiye (TL)</label><input id="wPay" type="number" min="0"></div>
+</div><button class="primary" onclick="addWorker()">Yevmiyeyi Kaydet</button></div>
+<div id="workerList"></div></section>
+
+<section id="expenses"><h2>💸 Masraflar</h2>
+<div class="card"><div class="row">
+<div class="field"><label>Masraf türü</label><select id="eType"><option>Un</option><option>Maya</option><option>Yakıt</option><option>Elektrik</option><option>Su</option><option>Araç</option><option>Bakım / Onarım</option><option>Diğer</option></select></div>
+<div class="field"><label>Tutar (TL)</label><input id="eAmount" type="number" min="0"></div>
+<div class="field"><label>Açıklama</label><input id="eNote" placeholder="İsteğe bağlı"></div>
+</div><button class="primary" onclick="addExpense()">Masrafı Kaydet</button></div>
+<div id="expenseList"></div></section>
+
+<section id="bayDetail"><button class="secondary" onclick="go('bays',document.querySelector('[data-s=bays]'))">← Bayilere Dön</button><h2 id="bayTitle" style="margin-top:14px">Bayi</h2><div id="baySummary" class="grid"></div><div id="bayShipments"></div></section>
+
+<section id="reports"><h2>📊 Raporlar</h2>
+<div class="grid">
+<div class="card"><div class="label">Toplam kasa</div><div class="num" id="rCases">0</div></div>
+<div class="card"><div class="label">Toplam çıkan ekmek</div><div class="num" id="rBread">0</div></div>
+<div class="card"><div class="label">Toplam eksik</div><div class="num" id="rMissing">0</div></div>
+<div class="card"><div class="label">Toplam teslim</div><div class="num" id="rDelivered">0</div></div>
+<div class="card"><div class="label">Toplam yevmiye</div><div class="num" id="rWage">0 TL</div></div>
+<div class="card"><div class="label">Toplam masraf</div><div class="num" id="rExpense">0 TL</div></div>
+</div>
+<div class="card" style="margin-top:12px"><b>Bayi dağılımı</b><div id="reportBays"></div></div>
+</section>
+</main>
+<footer>Veriler bu cihazın tarayıcısında saklanır.</footer>
+
+<script>
+const BAYS=["Meydan 1","Meydan 2","Üst Geçit","Naci Gökçe","Kurtuluş","Kadın Doğum","TOKİ Çarşı","TOKİ Hastane","Kütüphane","Bulut"];
+const KEY="ekmek_fabrikasi_v1";
+let db=JSON.parse(localStorage.getItem(KEY)||'{"ship":[],"workers":[],"expenses":[]}');
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(db));render()};
+const fmt=n=>Number(n||0).toLocaleString("tr-TR");
+const today=()=>new Date().toLocaleDateString("tr-TR");
+function go(id,btn){document.querySelectorAll("section").forEach(s=>s.classList.remove("activeSec"));document.getElementById(id).classList.add("activeSec");document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");render()}
+function calcShip(){let c=+document.getElementById("sCases").value||0,m=+document.getElementById("sMissing").value||0;document.getElementById("calcBread").textContent=fmt(c*20);document.getElementById("calcDelivered").textContent=fmt(Math.max(0,c*20-m))}
+function addShip(){let bay=sBay.value,c=+sCases.value,m=+sMissing.value||0;if(!c)return alert("Kasa sayısını girin.");if(m>c*20)return alert("Eksik ekmek toplam çıkan ekmekten fazla olamaz.");db.ship.push({date:today(),time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"}),bay,cases:c,bread:c*20,missing:m,delivered:c*20-m});sCases.value="";sMissing.value=0;calcShip();save()}
+function addWorker(){let name=wName.value.trim(),days=+wDays.value||0,pay=+wPay.value||0;if(!name||!days||!pay)return alert("Eleman, gün ve yevmiye bilgilerini girin.");db.workers.push({date:today(),name,days,pay,total:days*pay});wName.value="";wDays.value=1;wPay.value="";save()}
+function addExpense(){let amount=+eAmount.value||0;if(!amount)return alert("Tutar girin.");db.expenses.push({date:today(),type:eType.value,note:eNote.value.trim(),amount});eAmount.value="";eNote.value="";save()}
+function tableShip(){if(!db.ship.length)return '<div class="empty">Henüz sevkiyat kaydı yok.</div>';return '<div class="tablewrap"><table class="table"><tr><th>Tarih</th><th>Saat</th><th>Bayi</th><th>Kasa</th><th>Çıkan</th><th>Eksik</th><th>Teslim</th></tr>'+db.ship.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${x.time}</td><td>${x.bay}</td><td>${x.cases}</td><td>${x.bread}</td><td class="danger">${x.missing}</td><td><b>${x.delivered}</b></td></tr>`).join("")+'</table></div>'}
+function render(){
+sBay.innerHTML=BAYS.map(b=>`<option>${b}</option>`).join("");
+const cases=db.ship.reduce((a,x)=>a+x.cases,0),bread=db.ship.reduce((a,x)=>a+x.bread,0),missing=db.ship.reduce((a,x)=>a+x.missing,0),delivered=db.ship.reduce((a,x)=>a+x.delivered,0),wage=db.workers.reduce((a,x)=>a+x.total,0),expense=db.expenses.reduce((a,x)=>a+x.amount,0);
+dCases.textContent=fmt(cases);dBread.textContent=fmt(bread);dMissing.textContent=fmt(missing);dDelivered.textContent=fmt(delivered);dWage.textContent=fmt(wage)+" TL";dExpense.textContent=fmt(expense)+" TL";
+bayCards.innerHTML=BAYS.map(b=>{let a=db.ship.filter(x=>x.bay===b),c=a.reduce((z,x)=>z+x.cases,0),d=a.reduce((z,x)=>z+x.delivered,0);return `<div class="card bay" role="button" tabindex="0" data-bay="${b.replace(/"/g,"&quot;")}" onclick="showBay(this.dataset.bay)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showBay(this.dataset.bay)}"><b>${b}</b><div class="num">${fmt(c)} kasa</div><div class="label">${fmt(d)} teslim edilen ekmek</div></div>`}).join("");
+shipList.innerHTML=tableShip();
+workerList.innerHTML=db.workers.length?'<div class="tablewrap"><table class="table"><tr><th>Tarih</th><th>Eleman</th><th>Gün</th><th>Yevmiye</th><th>Toplam</th></tr>'+db.workers.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${x.name}</td><td>${x.days}</td><td>${fmt(x.pay)} TL</td><td><b>${fmt(x.total)} TL</b></td></tr>`).join("")+'</table></div>':'<div class="empty">Henüz yevmiye kaydı yok.</div>';
+expenseList.innerHTML=db.expenses.length?'<div class="tablewrap"><table class="table"><tr><th>Tarih</th><th>Tür</th><th>Açıklama</th><th>Tutar</th></tr>'+db.expenses.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${x.type}</td><td>${x.note||"-"}</td><td><b>${fmt(x.amount)} TL</b></td></tr>`).join("")+'</table></div>':'<div class="empty">Henüz masraf kaydı yok.</div>';
+rCases.textContent=fmt(cases);rBread.textContent=fmt(bread);rMissing.textContent=fmt(missing);rDelivered.textContent=fmt(delivered);rWage.textContent=fmt(wage)+" TL";rExpense.textContent=fmt(expense)+" TL";
+reportBays.innerHTML=BAYS.map(b=>{let a=db.ship.filter(x=>x.bay===b),c=a.reduce((z,x)=>z+x.cases,0),d=a.reduce((z,x)=>z+x.delivered,0);return `<div style="padding:9px 0;border-bottom:1px solid #eee"><b>${b}</b> — ${fmt(c)} kasa / ${fmt(d)} ekmek</div>`}).join("");
+}
+function showBay(b){
+  document.querySelectorAll("section").forEach(x=>x.classList.remove("activeSec"));
+  const detail=document.getElementById("bayDetail");
+  detail.classList.add("activeSec");
+  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+
+  const rows=db.ship.filter(x=>x.bay===b);
+  const cases=rows.reduce((a,x)=>a+x.cases,0);
+  const bread=rows.reduce((a,x)=>a+x.bread,0);
+  const missing=rows.reduce((a,x)=>a+x.missing,0);
+  const delivered=rows.reduce((a,x)=>a+x.delivered,0);
+
+  document.getElementById("bayTitle").textContent="🏪 "+b;
+  document.getElementById("baySummary").innerHTML=
+    `<div class="card"><div class="label">Toplam kasa</div><div class="num">${fmt(cases)}</div></div>`+
+    `<div class="card"><div class="label">Çıkan ekmek</div><div class="num">${fmt(bread)}</div></div>`+
+    `<div class="card"><div class="label">Eksik ekmek</div><div class="num">${fmt(missing)}</div></div>`+
+    `<div class="card"><div class="label">Teslim edilen</div><div class="num">${fmt(delivered)}</div></div>`;
+
+  document.getElementById("bayShipments").innerHTML=rows.length
+    ? '<div class="tablewrap"><table class="table"><tr><th>Tarih</th><th>Saat</th><th>Kasa</th><th>Çıkan</th><th>Eksik</th><th>Teslim</th></tr>'+
+      rows.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${x.time}</td><td>${x.cases}</td><td>${x.bread}</td><td class="danger">${x.missing}</td><td><b>${x.delivered}</b></td></tr>`).join("")+
+      '</table></div>'
+    : '<div class="empty">Bu bayiye henüz sevkiyat kaydı girilmemiş.</div>';
+}
+render();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "Ekmek Fabrikası",
+  "short_name": "Ekmek Fabrikası",
+  "description": "Fabrika takip ve sevkiyat sistemi",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#123a63",
+  "lang": "tr",
+  "orientation": "portrait"
+}
